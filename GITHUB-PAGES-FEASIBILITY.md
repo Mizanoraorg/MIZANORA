@@ -71,7 +71,7 @@ Ye numbers repo se **count kiye gaye** hain, andaze nahi:
 | 6 | Files jo ISR `revalidate` use karti hain | **122** | ❌ Pages me ISR hota hi nahi |
 | 7 | Files jo `unstable_cache` use karti hain | **20** | ❌ sirf server par |
 | 8 | Middleware (IP blocklist, probe blocking, security logs) | **1 file** | ❌ Pages middleware support nahi karta |
-| 9 | `next.config.js` redirects (`/shop`, `/offers`, `/iptv`, `/reseller` …) | **11** | ❌ ignore — purane/Google links 404 |
+| 9 | `next.config.js` redirects (shop, offers, IPTV, reseller aur account ke purane paths) | **11** | ❌ ignore — purane/Google links 404 |
 | 10 | `next.config.js` headers (security + cache) | **~10 rules** | ❌ ignore |
 | 11 | Cron job (`/api/cron/security`, daily) | **1** | ❌ Pages me cron nahi hota |
 | 12 | Non-API routes jo runtime par render hoti hain | **11** | ❌ `/songs`, `/search`, `/movies`, `/sitemaps/[file]` etc. |
