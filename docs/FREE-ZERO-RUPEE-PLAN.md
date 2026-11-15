@@ -180,3 +180,66 @@ Agar step 1 kaam kar gaya (Vercel wapas aa gaya) → **2 aur 3 chhore dein**, ba
 | `.github/workflows/keepalive.yml` | Render sleep + 60-din trap |
 | `.github/workflows/deploy-cloudflare.yml` | optional auto-deploy (token ho to) |
 | `docs/FREE-ZERO-RUPEE-PLAN.md` | yehi document |
+
+---
+
+## 10. "Cloudflare + GitHub Actions" akela — 100% free ho sakta hai?
+
+**Chhota jawab:** bandwidth, media, deploy, cron, images — **sab pehle se 100% free hai**. Magar **Next.js ka server** Cloudflare ke free plan par nahi chalta. Neeche exact numbers hain.
+
+### Jo Cloudflare + Actions par pehle se 100% FREE hai
+
+| Cheez | Free limit | Kaafi hai? |
+|-------|-----------|-----------|
+| **Static files ke requests** | **Free aur UNLIMITED** (100k cap me ginte bhi nahi) | ✅ |
+| Static file size | 25 MiB / file | ✅ |
+| Media (images/posters/songs) | egress $0, lekin 100k req/din | ✅ chhote shop ke liye |
+| Deploy (GitHub Actions) | Public repo par unlimited minutes | ✅ |
+| Cron | 5 triggers/account, min 5 min | ✅ |
+| R2 (agar zaroorat pade) | 10 GB, **zero egress**, 10M reads/mo | ✅ |
+
+### Jo free plan par NAHI ho sakta — 5 asli rukawatein
+
+| # | Rukawat | Number | Nateeja |
+|---|---------|--------|---------|
+| 1 | **SSR ka CPU** | free = **10 ms** / request | 1.27 MB homepage render 10 ms me nahi hota → **koi server-rendered page nahi** |
+| 2 | **Static file count** | free = **20,000 files** | aapke build me har page = **3 files** (`.html` + `.meta` + `.rsc`). 11,297 products × 3 = **33,891** → **limit cross** |
+| 3 | `firebase-admin` | **33 API routes** (gRPC) | Workers par chalta hi nahi → Firestore REST me rewrite |
+| 4 | `data/catalog` | **42 MB** disk se | koi `fs` nahi → R2 ya D1 |
+| 5 | Requests | **100,000 / din** | API + media share karte hain. 10 API calls/visit = 10,000 visits/din |
+
+> **Rukawat #2 sabse ahem hai** — ye sirf code ka masla nahi, platform ki limit hai. Isi liye "bas rewrite kar lo" wala hal beech me atak jata hai.
+
+### 100% free ke do raste
+
+**Route A — ek aur free host (aaj, zero rewrite)** ⭐ *recommended*
+
+```
+GitHub Actions (build)  →  Render Free (Next.js server, $0, no card)
+                        →  Cloudflare Worker (media, $0, unlimited egress)
+                        →  Firebase Spark (data, $0)
+```
+- **Kharcha: $0** · **Kaam: 30 min** · **Rewrite: zero**
+- Wajah: Cloudflare akela server nahi de sakta — Render de deta hai, muft.
+
+**Route B — poora Cloudflare (3–6 hafte ka rewrite)**
+
+Limits ke hisaab se ye **mumkin** hai, magar kaam bara hai:
+
+| Karna padega | Kyun |
+|---|---|
+| Saare pages **pre-render** (build par), R2 me rakhein | 20k file limit + 10 ms CPU |
+| Patla Worker jo R2 se page serve kare | R2 par file-count limit nahi; 100k req/din kaafi hai |
+| 33 routes ko `firebase-admin` → **Firestore REST** | gRPC Workers par nahi chalta |
+| 42 MB catalog → **R2 / D1** | koi `fs` nahi |
+| Songs/movies/search ko **client-side** karein | SSR possible nahi |
+
+Feasible hai — lekin **ye ek naya project hai**, config change nahi.
+
+### Faisla
+
+| Chahte hain | Rasta | Kharcha | Waqt |
+|---|---|---|---|
+| **$0, aaj, sab kuch chalta hua** | **Route A** (Render + Cloudflare) | **$0** | 30 min |
+| $0, sab Cloudflare par | Route B (rewrite) | $0 | 3–6 hafte |
+| $5/mo, sab Cloudflare par | Workers Paid + OpenNext | $5 | 2–4 hafte |
