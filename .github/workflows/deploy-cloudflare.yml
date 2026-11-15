@@ -1,0 +1,81 @@
+name: Deploy to Cloudflare
+
+# Cloudflare par deploy GitHub Actions se hota hai — token repo ke secret me
+# rehta hai, chat/code me kabhi nahi. (Aur Agent ka sandbox api.cloudflare.com
+# tak pahunch hi nahi sakta — is liye yehi tareeqa lazmi hai.)
+#
+# ZAROORI SECRETS (repo → Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   → "Edit Cloudflare Workers" template se banayein
+#   CLOUDFLARE_ACCOUNT_ID  → dashboard ke URL / sidebar se
+#   TV_PROXY_SECRET        → (optional) app ke TV_PROXY_SECRET jaisa hi
+#
+# Token na ho to workflow fail nahi hota — sirf skip hota hai.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workers/**"
+      - ".github/workflows/deploy-cloudflare.yml"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Kya deploy karna hai"
+        type: choice
+        default: media
+        options: [media, all]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  media-proxy:
+    name: Media proxy (images · posters · songs · tv)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Token mojood hai?
+        id: guard
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then
+            echo "::notice title=Deploy skipped::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID set nahi hain. Settings → Secrets → Actions me daalein."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy worker
+        if: steps.guard.outputs.ready == 'true'
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/media-proxy
+          command: deploy
+          # Ye env var Worker ke andar secret ban kar jaata hai. Signature ka
+          # secret app ke TV_PROXY_SECRET se bilkul same hona chahiye, warna
+          # signed TV playlists verify nahi hongi.
+          secrets: |
+            TV_PROXY_SECRET
+        env:
+          TV_PROXY_SECRET: ${{ secrets.TV_PROXY_SECRET }}
+
+      - name: Nateeja
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          echo "### Cloudflare deploy ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Worker URL:** ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Ab Cloudflare dashboard → Workers → mizanora-media → Settings → Routes me" >> "$GITHUB_STEP_SUMMARY"
+          echo "apni site ke \`/api/img*\`, \`/api/poster*\`, \`/api/songs/cdn*\`, \`/api/tv/p*\` routes jorein." >> "$GITHUB_STEP_SUMMARY"

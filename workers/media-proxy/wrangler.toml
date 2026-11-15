@@ -1,0 +1,45 @@
+# Cloudflare Worker — Mizanora media proxy
+#
+# Deploy:  cd workers/media-proxy && npx wrangler deploy
+# Secret:  npx wrangler secret put TV_PROXY_SECRET
+#          (wahi value jo origin ke TV_PROXY_SECRET env var me hai — warna
+#           TV relay ki signatures verify nahi hongi)
+
+name = "mizanora-media"
+main = "index.js"
+compatibility_date = "2026-11-01"
+
+# Worker bahut chhota hai (~10 KB) — Cloudflare ki 64 MiB limit ka koi masla nahi.
+# CPU per request: sirf headers copy, yaani 1 ms se bohat kam (free tier 10 ms).
+
+[vars]
+# TV relay chalu/band — origin ke NEXT_PUBLIC_TV_RELAY se match rakhein.
+NEXT_PUBLIC_TV_RELAY = "off"
+
+# Bina signature wali /api/tv/p requests (channel ka pehla address) origin par
+# bhejni hain, kyunki channel allowlist Firebase me hai. Apna origin likhein:
+# ORIGIN = "https://mizanora.vercel.app"
+
+# Optional: image relay ko sirf in hosts tak mehdood karein (SSRF + misuse se bachao).
+# NEXT_IMAGE_PROXY_HOSTS = "imgbb.com,ibb.co,i.ibb.co"
+
+[observability]
+enabled = true
+
+# ---------------------------------------------------------------------------
+# ROUTES — custom domain par (origin app me ZERO code change)
+#
+# Domain Cloudflare par hone chahiye (nameservers Cloudflare ke). Phir
+# dashboard → Workers → mizanora-media → Settings → Routes:
+#
+#   shop.example.com/api/img*          → mizanora-media
+#   shop.example.com/api/poster*       → mizanora-media
+#   shop.example.com/api/songs/cdn*    → mizanora-media
+#   shop.example.com/api/tv/p*         → mizanora-media
+#
+# Cloudflare ye requests Worker ko de dega aur origin (Vercel/host) unhe
+# KABHI nahi dekhega — is liye media ka transfer bill zero.
+#
+# Bina domain (workers.dev) par: Worker alag URL par chalega, aur app ko
+# us URL par point karna padega (4 files — docs/CLOUDFLARE-JUGAD.md dekhein).
+# ---------------------------------------------------------------------------

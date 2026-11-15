@@ -1,0 +1,26 @@
+# Caddy — HTTPS khud le leta hai (Let's Encrypt), kuch setup nahi.
+# DOMAIN docker-compose ke environment se aata hai.
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Mizanora media relays already bandwidth-heavy hain; Caddy ka gzip ise
+	# HTML/JS ke liye mazeed kam kar deta hai (homepage 1.27 MB → ~100 KB).
+
+	reverse_proxy app:3000
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options SAMEORIGIN
+		Permissions-Policy "camera=(), microphone=(self), geolocation=()"
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 20mb
+			roll_keep 5
+		}
+	}
+}

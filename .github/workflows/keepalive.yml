@@ -1,0 +1,78 @@
+name: Keep app awake
+
+# Free hosts (Render, Koyeb) idle hone par app ko sula dete hain — pehla visitor
+# 30-60 second intezaar karta hai. Ye workflow har 10 minute ek sasta static
+# request bhejta hai taake app jaagta rahe.
+#
+# AHEM: `/api/health` ko ping NA karein — wo har 5 minute me Firestore me ek
+# asli WRITE karta hai (lib/api/health/route.js dekhein). Har 10 minute par
+# ping karne se aapka free Firebase quota bina wajah khatam hoga.
+# Is liye yahan `/robots.txt` use hua hai: static, 389 bytes, zero cost —
+# magar phir bhi host ke liye "incoming traffic" hai, jo app ko jagaye rakhta hai.
+#
+# Setup: repo → Settings → Secrets and variables → Actions → Variables →
+#        New variable: SITE_URL = https://your-site.onrender.com
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the site
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            echo "::notice::SITE_URL variable set nahi hai — skipping ping."
+            exit 0
+          fi
+          echo "Pinging $SITE_URL/robots.txt"
+          # -f: 4xx/5xx par fail ho. Free host cold start le sakta hai, is liye
+          # 3 koshish aur 90s timeout.
+          for i in 1 2 3; do
+            if curl -fsS --max-time 90 -o /dev/null "$SITE_URL/robots.txt"; then
+              echo "::notice::Site awake (attempt $i)."
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 20s..."
+            sleep 20
+          done
+          echo "::warning::Site jawab nahi de raha — host dashboard check karein."
+          exit 0   # keepalive fail hone se repo red na ho
+
+  # GitHub public repos me 60 din ki inactivity par SCHEDULED workflows chup-chaap
+  # band ho jate hain (koi error nahi). Ye job mahine me ek dafa chhota commit
+  # karke timer reset karti hai. Sirf mahine ki 1 tareekh ko chalti hai.
+  keep-schedules-alive:
+    if: github.event.schedule == '*/10 * * * *' && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Touch a timestamp once a month
+        run: |
+          if [ "$(date -u +%d)" != "01" ]; then
+            echo "Aaj 1 tareekh nahi — skip."
+            exit 0
+          fi
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/keepalive.txt
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/keepalive.txt
+          git diff --quiet --cached && exit 0
+          git commit -m "chore: keepalive [skip ci]"
+          git push

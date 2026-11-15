@@ -1,0 +1,74 @@
+# Render Blueprint — sabse tez free jugaad (credit card nahi chahiye)
+#
+# Kaise: render.com → New → Blueprint → repo `Mizanora-org/MIZANORA` chunein.
+# Render ye file parh kar service khud bana dega. Jo `sync: false` hain wo
+# dashboard me poochhe jayenge (secrets wahan daalein, repo me na likhein).
+#
+# ⚠️ 2026 ka Render free tier: 750 ghante/mahina, 512 MB RAM, **5 GB bandwidth**,
+# aur 15 minute inactivity ke baad sleep. 5 GB ka matlab ~20,000 page views.
+# Is liye deploy se pehle `NEXT_PUBLIC_TV_RELAY=off` aur `NEXT_PUBLIC_IMAGE_RELAY=off`
+# lazmi karein, warna bandwidth pehle hi din khatam ho jayegi.
+# Poori tafseel: docs/FREE-HOSTING-JUGAD.md
+
+services:
+  - type: web
+    name: mizanora
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    # Native Node build — is se NEXT_PUBLIC_* values build ke waqt maujood hoti
+    # hain aur browser bundle me sahi bake hoti hain (Docker me build-args lazmi hote).
+    buildCommand: npm ci --no-audit --no-fund && npm run build
+    startCommand: npx next start -p $PORT -H 0.0.0.0
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+
+      # ---- bandwidth bachane ke switches (report dekhein) ----
+      - key: NEXT_PUBLIC_TV_RELAY
+        value: "off"
+      - key: NEXT_PUBLIC_IMAGE_RELAY
+        value: "off"
+      - key: NEXT_PUBLIC_SONGS_DIRECT
+        value: "1"
+      # Cloudflare Worker (workers/media-proxy) — relayed media yahan se jaye,
+      # is server ka transfer bacha rahe. Khaali chhoren to pehle jaisa.
+      - key: NEXT_PUBLIC_MEDIA_BASE
+        sync: false
+      - key: MOVIES_SITEMAP_LIMIT
+        value: "20000"
+
+      # ---- public config (build time par bake hoti hai) ----
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: NEXT_PUBLIC_WHATSAPP_NUMBER
+        sync: false
+      - key: NEXT_PUBLIC_SHIPPING_FEE
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        sync: false
+
+      # ---- secrets (runtime) ----
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
+      - key: ADMIN_UID
+        sync: false
+      - key: IMGBB_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: INDEXNOW_KEY
+        sync: false
