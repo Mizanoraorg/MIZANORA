@@ -243,3 +243,53 @@ Feasible hai — lekin **ye ek naya project hai**, config change nahi.
 | **$0, aaj, sab kuch chalta hua** | **Route A** (Render + Cloudflare) | **$0** | 30 min |
 | $0, sab Cloudflare par | Route B (rewrite) | $0 | 3–6 hafte |
 | $5/mo, sab Cloudflare par | Workers Paid + OpenNext | $5 | 2–4 hafte |
+
+---
+
+## 11. Platform scorecard — "ye free hai na?"
+
+Har platform ke liye ek hi sawal: **kya ye Next.js ka server muft chala sakta hai?**
+(nov 2026 ke official docs se verify kiya)
+
+| Platform | Server (Node) muft? | Static? | Verdict |
+|----------|--------------------|---------|---------|
+| **Render Free** | ✅ haan (512 MB, 5 GB bandwidth, sleeps 15 min) | ✅ | ⭐ **iste kaam chal jata hai** |
+| **Vercel Hobby** | ✅ haan (100 GB) — aapka account paused hai | ✅ | ⭐ best agar unpause ho |
+| **Netlify Free** | ✅ haan (300 credits ≈ 15 GB) | ✅ | thik |
+| **Cloudflare Workers Free** | ❌ (10 ms CPU, koi `fs` nahi) | ✅ **unlimited, $0** | media ke liye ⭐ |
+| **Oracle Always Free** | ✅ haan (24 GB RAM, 10 TB) | ✅ | card chahiye (verify) |
+| **GitHub Pages** | ❌ static only | ✅ 100 GB | ❌ 89 APIs mar jayengi |
+| **Hugging Face Spaces** | ❌ **Docker Space = PRO $9/mo** | ✅ static free | ❌ neeche tafseel |
+
+### Hugging Face Spaces — 2026 me kya badla
+
+Official Hub docs (2026) ke alfaaz:
+
+> "Static Spaces are free for everyone. **Gradio and Docker Spaces run on compute and require a paid plan to create**: PRO for personal accounts, Team or Enterprise for organizations."
+>
+> "Free personal accounts in good standing can still host up to **2 Gradio Spaces** running on ZeroGPU."
+
+Yani Spaces ki "Create new Space" wali screen par jo SDK options dikhte hain, unka matlab:
+
+| SDK | Kya karta hai | Mizanora ke liye |
+|-----|---------------|------------------|
+| **Static** | static files (build command bhi chal sakta hai — React/Svelte/Vue) | ❌ build ho jayega, magar **89 API routes mar jayengi** |
+| **Gradio** | Python ML demo | ❌ bilkul fit nahi |
+| **Docker** | koi bhi server — `next start` chal jata | ✅ chalega, **magar create karne ke liye PRO ($9/mo)** |
+
+### Docker free hota bhi, to bhi 5 masle
+
+| Masla | Asar |
+|-------|------|
+| **48 ghante** inactivity par sleep | pehli visit 30–90s |
+| Disk **ephemeral** (50 GB) | restart par likha hua data **gum** |
+| Space repo (git) ~**1 GB** | 42 MB data fit hai, magar bara nahi ho sakta |
+| **Custom domain** = PRO | sirf `*.hf.space` |
+| Free tier **public** by default | source + app sabko nazar |
+| Platform **ML demos** ke liye bana hai | production shop ke liye nahi |
+
+**Nateeja:** HF Spaces static-only hai (GitHub Pages jaisa), aur jo cheez kaam karegi (Docker) wo **$9/mo** hai. Ye aapke "sab $0" wale maqsad ke **khilaf** hai.
+
+### Ek achi baat
+
+Aapko HF ki zaroorat hi nahi — **media ka kaam Cloudflare Worker pehle se kar raha hai, $0 me**. HF sirf us jagah aata hai jahan Node server chahiye, aur wahan Render muft hai.
