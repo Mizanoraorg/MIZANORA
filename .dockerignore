@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+.git
+.github
+*.rar
+*.log
+.env
+.env.local
+.env*.local
+coverage
+docs
+
+# ⚠️ `*.md` ko yahan IGNORE NA karein — content/blog/*.md (165 blog posts)
+# runtime par disk se parhe jate hain (lib/blog.js). Unhe exclude karne se
+# poora blog khaali ho jayega.
